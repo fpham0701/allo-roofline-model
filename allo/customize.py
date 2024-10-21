@@ -859,6 +859,45 @@ class Schedule:
                     primitive_func(*args, **kwargs)
                     self.primitive_sequences.append((primitive[0], args, kwargs))
 
+    def count(self, op_type):
+        """
+        Counts the number of operation of `op_type`.
+
+        Parameters
+        ----------
+        op_type: str
+            The type of operation to be counted.
+        """
+        if (op_type == "load"):
+            # get load instructions 
+            raise "TODO"
+
+        elif (op_type == "store"):
+            # get store instructions
+            raise "TODO"
+
+        elif (op_type == "add"):
+            # get add instructions
+            raise "TODO"
+
+        elif (op_type == "mul"):
+            # get multiply instructions
+            raise "TODO"
+
+
+
+    def profile(self):
+        """
+        Analyzes function body and returns the operational intensity (OI).
+        """
+
+        num_mem_ops = self.count("load") + self.count("store")
+        num_arith_ops = self.count("add") + self.count("mul")
+
+        # OI = (#add + #mul) / ((#load + #store) * data type size)
+        print("TODO")
+
+
     def build(self, target=None, mode=None, project=None, configs=None):
         if target is None or target == "llvm":
             target = "llvm"
