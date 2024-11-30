@@ -866,25 +866,42 @@ class Schedule:
         Parameters
         ----------
         op_type: str
-            The type of operation to be counted.
+            The type of operation to be counted. Supported types: "load", "store", "add", "mul". 
         """
-        if (op_type == "load"):
-            # get load instructions 
-            raise "TODO"
+        op_count = 0
 
-        elif (op_type == "store"):
-            # get store instructions
-            raise "TODO"
+        op_type_map = {
+            "load": (memref_d.LoadOp, affine_d.AffineLoadOp, affine_d.AffineVectorLoadOp),
+            "store": (memref_d.StoreOp, affine_d.AffineStoreOp, affine_d.AffineVectorStoreOp),
+            "add": (arith_d.AddFOp, arith_d.AddIOp),
+            "mul": (arith_d.MulFOp, arith_d.MulIOp),
+        }
 
-        elif (op_type == "add"):
-            # get add instructions
-            raise "TODO"
+        if op_type not in op_type_map:
+            raise ValueError(f"Unsupported operation type {op_type}'. Supported types: {list(op_type_map.keys())}")
 
-        elif (op_type == "mul"):
-            # get multiply instructions
-            raise "TODO"
+        target_op_types = op_type_map[op_type]
 
+        def traverse_operations(op):
+            nonlocal op_count
 
+            if isinstance(op, target_op_types):
+                op_count += 1
+
+            if isinstance(op, (affine_d.AffineForOp, scf_d.ForOp)):
+                
+                for ope in op.body.operations:
+                    traverse_operations(ope)
+
+        for func in self.module.body.operations:
+                for region in func.regions:
+                    print(len(region.blocks))
+                    for block in region.blocks:
+                        print(block)
+                        for op in block.operations:
+
+                            traverse_operations(op)
+        return op_count
 
     def profile(self):
         """
