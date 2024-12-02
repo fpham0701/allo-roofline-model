@@ -882,25 +882,61 @@ class Schedule:
 
         target_op_types = op_type_map[op_type]
 
-        def traverse_operations(op):
+
+        def get_tripcount(induct_var_dict):
+            tp = 1
+            for value in induct_var_dict.values():
+                tp *= value
+            return tp
+
+        def get_loopbound(op):
+            '''
+            trip count of loop bound of the op
+            '''
+            if isinstance(op, (affine_d.AffineForOp, scf_d.ForOp)):
+                induct_var = op.induction_variable
+                upper_bound = 1
+                lower_bound = 0
+                step = 1
+
+                for attr in op.attributes:
+                    #print(f"attr: {attr}")
+                    if (attr.name == 'lowerBoundMap'):
+                        lower_bound = int(str(attr.attr).split(")>")[0].split("-> (")[1])
+                    if (attr.name == 'upperBoundMap'):
+                        upper_bound = int(str(attr.attr).split(")>")[0].split("-> (")[1])
+                    if (attr.name == 'step'):
+                        step = int(str(attr.attr).split(" : ")[0])
+                trip_count = (upper_bound - lower_bound) // step
+                
+                return induct_var, trip_count
+
+
+        def traverse_operations(op, induct_var_dict):
             nonlocal op_count
 
             if isinstance(op, target_op_types):
-                op_count += 1
+                tp = get_tripcount(induct_var_dict)
 
-            if isinstance(op, (affine_d.AffineForOp, scf_d.ForOp)):
+                op_count += tp
+
+            elif isinstance(op, (affine_d.AffineForOp, scf_d.ForOp)):
+                induct_var, tp = get_loopbound(op)
+                induct_var_dict[induct_var] = tp
                 
-                for ope in op.body.operations:
-                    traverse_operations(ope)
+                for inner_op in op.body.operations:
+                    traverse_operations(inner_op, induct_var_dict)
 
+                induct_var_dict.pop(induct_var)   
+
+        print(len(self.module.body.operations))
+        print(self.module.body.operations[0])
         for func in self.module.body.operations:
-                for region in func.regions:
-                    print(len(region.blocks))
-                    for block in region.blocks:
-                        print(block)
-                        for op in block.operations:
+            for op in func.entry_block.operations:
+                induct_var_dict = dict()
 
-                            traverse_operations(op)
+                traverse_operations(op, induct_var_dict)
+
         return op_count
 
     def profile(self):
