@@ -929,8 +929,6 @@ class Schedule:
 
                 induct_var_dict.pop(induct_var)   
 
-        print(len(self.module.body.operations))
-        print(self.module.body.operations[0])
         for func in self.module.body.operations:
             for op in func.entry_block.operations:
                 induct_var_dict = dict()
@@ -947,8 +945,9 @@ class Schedule:
         num_mem_ops = self.count("load") + self.count("store")
         num_arith_ops = self.count("add") + self.count("mul")
 
-        # OI = (#add + #mul) / ((#load + #store) * data type size)
-        print("TODO")
+        # assume everything is 4 bytes (32 bits)
+        OI = num_arith_ops / (num_mem_ops * 4)
+        print(f"Operational Intensity: {OI}")
 
 
     def build(self, target=None, mode=None, project=None, configs=None):
